@@ -1,19 +1,17 @@
+import os
 from argparse import ArgumentParser
-from os import listdir, path
+from os import path
 
-import cv2
-
-import core
-import imgio as io
-from utils.imutils import is_img_file
+import manga_babel.utils.image_utils as imgutils
+from manga_babel.segmenter_model import segment_image
 
 
 def execute(args):
     paths = [args.one_image]
     if args.one_image == "":
         paths = [
-            filename for filename in listdir(args.input_folder)
-            if is_img_file(path.join(args.input_folder, filename))
+            filename for filename in os.listdir(args.input_folder)
+            if imgutils.is_img_file(path.join(args.input_folder, filename))
         ]
 
     for imagename in paths:
@@ -21,15 +19,11 @@ def execute(args):
         outputpath = path.join(args.output_folder, imagename)
         textpath = path.join(args.text_folder, imagename)
 
-        image = io.load(imagepath, io.IMAGE)
-        mask = core.segmap(image)
+        image = imgutils.load(imagepath, imgutils.IMAGE)
+        output, text = segment_image(image)
 
-        output = core.inpainted(image, mask)
-        text = cv2.bitwise_and(image, mask)
-        text[mask == 0] = 255
-
-        io.save(outputpath, output)
-        io.save(textpath, text)
+        imgutils.save(outputpath, output)
+        imgutils.save(textpath, text)
 
 
 def main():
@@ -41,6 +35,7 @@ def main():
     parser.add_argument("-t", "--text-folder", default="./images/text")
 
     args = parser.parse_args()
+
     execute(args)
 
 if __name__ == "__main__":

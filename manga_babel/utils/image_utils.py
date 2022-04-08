@@ -1,14 +1,19 @@
 import os
 
 import cv2
+import imageio
 import numpy as np
 
+import manga_babel.utils.functional_programming as fp
 
-# ---------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
 def is_img_file(fpath):
-    return(not(imread(fpath) is None)
+    return (
+        not(imread(fpath) is None)
         if os.path.isfile(fpath)
-      else False)
+        else False
+    )
 
 
 def unique_colors(img):
@@ -20,7 +25,7 @@ def unique_colors(img):
 
 
 def float32(uint8img):
-    ''' Convert uint8img(0~255) image to float32(0. ~ 1.) image '''
+    ''' Convert uint8img(0 ~ 255) image to float32(0. ~ 1.) image '''
     c = 1 if len(uint8img.shape) == 2 else 3
     h,w = uint8img.shape[:2]
     float32img = (uint8img / 255).astype(np.float32)
@@ -28,8 +33,8 @@ def float32(uint8img):
     return float32img.reshape((h, w, c))
 
 
-def uint8(img0_1): # img color range: [0.0 ~ 1.0]
-    ''' Convert float32(0. ~ 1.) image to  uint8img(0~255) image '''
+def uint8(img0_1):  # img color range: [0.0 ~ 1.0]
+    ''' Convert float32(0. ~ 1.) image to  uint8img(0 ~ 255) image '''
     return (img0_1 * 255).astype(np.uint8)
 
 
@@ -39,7 +44,7 @@ def binarization(img, threshold=100):
 
 
 def modulo_padded(img, modulo=16):
-    ''' Pad 0 pixels to image to make modulo * x width/height '''
+    ''' Pad 0 pixels to image to make modulo * x width / height '''
     h,w = img.shape[:2]
     h_padding = (modulo - (h % modulo)) % modulo
     w_padding = (modulo - (w % modulo)) % modulo
@@ -59,7 +64,7 @@ def imread(fpath):
     Assert that fpath is not directory.
     If data of fpath is invalid image(or not an image), then return None
     '''
-    with open(fpath,'rb') as stream:
+    with open(fpath, 'rb') as stream:
         bytes = bytearray(stream.read())
         nparr = np.asarray(bytes, dtype=np.uint8)
         if len(nparr):
@@ -68,28 +73,28 @@ def imread(fpath):
 
 def channel3img(img):
     '''
-    If img is 3-channel img(h,w,3) then this is identity funcion.
-    If img is grayscale img(h,w) then convert 3-channel img.
+    If img is 3-channel img(h, w, 3) then this is identity funcion.
+    If img is grayscale img(h, w) then convert 3-channel img.
     If img is bgra img, then CONVERT to bgr(TODO: warning required!)
     else return None
     '''
-    if len(img.shape) == 2:   # if grayscale image, convert.
+    if len(img.shape) == 2:  # if grayscale image, convert.
         return cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
     elif len(img.shape) == 3:
         _, _, c = img.shape
-        if c == 3: # BGR(RGB)
+        if c == 3:  # BGR(RGB)
             return img
-        elif c == 4: # BGRA(RGBA)
+        elif c == 4:  # BGRA(RGBA)
             return cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
             # NOTE: warning: no alpha!
     # else: None
 
 
-# ---------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # for segmap
 rgb2wk_map = {
-    (0., 1.) : [1.0, 1.0, 1.0],
-    (1., 0.) : [0.0, 0.0, 0.0]
+    (0., 1.): [1.0, 1.0, 1.0],
+    (1., 0.): [0.0, 0.0, 0.0]
 }
 
 
@@ -165,9 +170,11 @@ def decategorize(categorized, origin_map):
             origin = origin_map[tuple(category)]
 
             key_b, key_g, key_r = category
-            masks = ((img_b == key_b)
-                   & (img_g == key_g)
-                   & (img_r == key_r)) # if [0,0,0]
+            masks = (
+                (img_b == key_b)
+                & (img_g == key_g)
+                & (img_r == key_r)
+            ) # if [0,0,0]
             ret_img[masks] = origin
 
     elif n_classes == 2:
@@ -177,8 +184,10 @@ def decategorize(categorized, origin_map):
             origin = origin_map[tuple(category)]
 
             key_0, key_1 = category
-            masks = ((img_0 == key_0)
-                   & (img_1 == key_1)) # if [0,0,0]
+            masks = (
+                (img_0 == key_0)
+                & (img_1 == key_1)
+            )  # if [0,0,0]
             ret_img[masks] = origin
 
     elif n_classes == 4:
@@ -191,12 +200,66 @@ def decategorize(categorized, origin_map):
             masks = ((img_0 == key_0)
                    & (img_1 == key_1)
                    & (img_2 == key_2)
-                   & (img_3 == key_3)) # if [0,0,0]
+                   & (img_3 == key_3))  # if [0,0,0]
             ret_img[masks] = origin
 
     return ret_img
 
 
+load = fp.multi(lambda p,s=None: s)
+NDARR = 'ndarr'
+IMAGE = 'image'
+MASK = 'mask'
+
+
+@fp.mmethod(load, NDARR)
+def load(path, type): return imread(path)
+@fp.mmethod(load, IMAGE)
+def load(path, type): return channel3img(imread(path))
+@fp.mmethod(load, MASK)
+def load(path, type): return mask2segmap(imread(path))
+
+
+def segmap2mask(segmap):
+    '''
+    convert segmap(snet output) to mask(gui, file)
+
+    segmap: np.uint8, bgr,  {fg=white, bg=black}
+    mask:   np.uint8, bgra, {fg=red, bg=transparent}
+    '''
+    _, _, r = cv2.split(segmap) # b=g=r, a=r
+    b = g = np.zeros_like(r)
+    return cv2.merge((b, g, r, r))
+
+
+def mask2segmap(mask):
+    '''
+    convert mask(gui, file) to segmap(snet output)
+
+    mask:   np.uint8, bgra, {fg=red, bg=transparent}
+    segmap: np.uint8, bgr, b=g=r {fg=white, bg=black}
+    '''
+    return fp.go(
+        mask,
+        lambda m4: np.sum(m4[:, :, :3], axis=-1, dtype=np.uint8),
+        lambda m1: np.expand_dims(m1, axis=-1),
+        lambda m1: cv2.merge((m1, m1, m1))
+    )
+
+
+def save(path, img): #TODO: multimethod..?
+    if len(img.shape) == 3:
+        n_channels = img.shape[-1]
+        if n_channels == 4:  # bgra -> rgba
+            rgb_img = cv2.cvtColor(img, cv2.COLOR_BGRA2RGBA)
+        elif n_channels == 3:  # bgr -> rgb
+            rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    elif len(img.shape) == 2:  # bw = bw
+        rgb_img = img
+
+    imageio.imwrite(path, rgb_img)
+
+
 if __name__ == '__main__':
-    assert is_img_file('.') == False
+    assert is_img_file('.') is False
     assert is_img_file('./test/bigimg.png')
