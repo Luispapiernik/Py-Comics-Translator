@@ -7,6 +7,7 @@ def detect_text(image):
     if len(image.shape) == 3:
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
+    # image = cv2.Sobel(image, cv2.CV_8U, 1, 0)
     # Performing OTSU threshold
     _, thresh = cv2.threshold(image, 0, 255, cv2.THRESH_OTSU | cv2.THRESH_BINARY_INV)
 
@@ -40,18 +41,18 @@ def detect_text(image):
         bottom_right = (x + width + offset, y + height + offset)
 
         # TODO: this must be parametrized
-        if width > 20 and height > 20:
+        if width > 5 and height > 5:
             # Drawing a rectangle on copied image
-            cv2.rectangle(
-                image,
-                left_top,
-                bottom_right,
-                color=(0, 0, 0),
-                thickness=1
-            )
+            # cv2.rectangle(
+            #     image,
+            #     left_top,
+            #     bottom_right,
+            #     color=(0, 0, 0),
+            #     thickness=1
+            # )
 
-        # Cropping the text block for giving input to OCR
-        cropped = image[left_top[1]:bottom_right[1], left_top[0]:bottom_right[0]]
-        result.append(((x, y, width, height), cropped))
+            # Cropping the text block for giving input to OCR
+            cropped = image[left_top[1]:bottom_right[1], left_top[0]:bottom_right[0]]
+            result.append(((x, y, width, height), cropped))
 
     return result

@@ -1,9 +1,10 @@
+import argparse
 from argparse import ArgumentParser
 
 from comic_babel.comic_translator import ComicTranslator
 
 
-def execute(args):
+def execute(args: argparse.Namespace) -> None:
     comic_translator = ComicTranslator(
         input_folder=args.input_folder,
         output_folder=args.output_folder,
@@ -12,7 +13,7 @@ def execute(args):
     comic_translator.translate_comic()
 
 
-def main():
+def main() -> None:
     parser = ArgumentParser()
 
     # agregar soporte para todo tipo de imagenes: PNG

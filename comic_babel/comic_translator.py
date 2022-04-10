@@ -44,7 +44,7 @@ class ComicTranslator:
         for input_filename, output_filename in zip(self.input_paths, self.output_paths):
             self.translate_single_page(input_filename, output_filename)
 
-    def translate_single_page(self, input_filename, output_filename):
+    def for_test_translate_single_page(self, input_filename, output_filename):
         image = imgutils.load(input_filename, imgutils.IMAGE)
         without_text, text = segment_image(image)
 
@@ -53,6 +53,7 @@ class ComicTranslator:
 
         rects = detect_text(text)
         print("=" * 100)
+        i = 0
         for (x, y, width, height), cropped in rects:
             string = get_text(cropped)
             if string.strip() != "":
@@ -70,4 +71,40 @@ class ComicTranslator:
                 thickness=1
             )
 
+            imgutils.save(
+                output_filename.replace("outputs", "cropped").replace(".png", f"_{i}.png"),
+                cropped
+            )
+            i += 1
+
         imgutils.save(output_filename.replace("outputs", "detected"), text)
+
+    def clean_text(self, text: str) -> str:
+        """TODO: Implement a cleaning methodology"""
+        return text
+
+    def is_valid_text(self, text: str) -> bool:
+        """TODO: Improve the text validation methodology"""
+        return text.strip() != ""
+
+    def translate_single_page(self, input_filename, output_filename):
+        image = imgutils.load(input_filename, imgutils.IMAGE)
+        without_text, text = segment_image(image)
+
+        rects = detect_text(text)
+        for (x, y, width, height), cropped in rects:
+            string = get_text(cropped)
+            string = self.clean_text(string)
+
+            if self.is_valid_text(string):
+                left_top = (x, y)
+                bottom_right = (x + width, y + height)
+                cv2.rectangle(
+                    text,
+                    left_top,
+                    bottom_right,
+                    color=(0, 0, 0),
+                    thickness=1
+                )
+
+        imgutils.save(output_filename, without_text)
