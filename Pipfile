@@ -9,6 +9,7 @@ numpy = "*"
 imageio = "*"
 opencv-python = "*"
 tensorflow = "*"
+pytesseract = "*"
 
 [dev-packages]
 pre-commit = "*"

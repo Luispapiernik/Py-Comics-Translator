@@ -7,8 +7,8 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 # NOTE: above only work before tf was imported.
 import tensorflow as tf
 
-import manga_babel.utils.functional_programming as fp
-import manga_babel.utils.image_utils as iu
+import comic_babel.utils.functional_programming as fp
+import comic_babel.utils.image_utils as iu
 
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 tf.get_logger().setLevel('ERROR')

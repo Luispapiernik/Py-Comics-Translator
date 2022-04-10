@@ -4,7 +4,7 @@ import cv2
 import imageio
 import numpy as np
 
-import manga_babel.utils.functional_programming as fp
+import comic_babel.utils.functional_programming as fp
 
 
 # ------------------------------------------------------------------------------

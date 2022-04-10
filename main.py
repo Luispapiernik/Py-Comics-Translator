@@ -1,42 +1,31 @@
-import os
 from argparse import ArgumentParser
-from os import path
 
-import manga_babel.utils.image_utils as imgutils
-from manga_babel.segmenter_model import segment_image
+from comic_babel.comic_translator import ComicTranslator
 
 
 def execute(args):
-    paths = [args.one_image]
-    if args.one_image == "":
-        paths = [
-            filename for filename in os.listdir(args.input_folder)
-            if imgutils.is_img_file(path.join(args.input_folder, filename))
-        ]
-
-    for imagename in paths:
-        imagepath = path.join(args.input_folder, imagename)
-        outputpath = path.join(args.output_folder, imagename)
-        textpath = path.join(args.text_folder, imagename)
-
-        image = imgutils.load(imagepath, imgutils.IMAGE)
-        output, text = segment_image(image)
-
-        imgutils.save(outputpath, output)
-        imgutils.save(textpath, text)
+    comic_translator = ComicTranslator(
+        input_folder=args.input_folder,
+        output_folder=args.output_folder,
+        filename_regex=args.filename_regex
+    )
+    comic_translator.translate_comic()
 
 
 def main():
     parser = ArgumentParser()
 
-    parser.add_argument("-oi", "--one-image", default="")
+    # agregar soporte para todo tipo de imagenes: PNG
+    # TODO: add options for differents fonts, differents OCR's, differents
+    # translators, differents image segmentators, differents contours detectors ...
+    parser.add_argument("-f", "--filename-regex", default=r"\w+_\d+\.(?:jpg|png)")
     parser.add_argument("-i", "--input-folder", default="./images/inputs")
     parser.add_argument("-o", "--output-folder", default="./images/outputs")
-    parser.add_argument("-t", "--text-folder", default="./images/text")
 
     args = parser.parse_args()
 
     execute(args)
+
 
 if __name__ == "__main__":
     main()
