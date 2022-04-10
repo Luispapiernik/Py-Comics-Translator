@@ -1,36 +1,76 @@
 import os
 
-import consts
-
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = consts.TF_CPP_MIN_LOG_LEVEL
+import cv2
 import numpy as np
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 # NOTE: above only work before tf was imported.
 import tensorflow as tf
 
-import utils.fp as fp
-import utils.imutils as iu
+import comic_babel.utils.functional_programming as fp
+import comic_babel.utils.image_utils as iu
 
-seg_limit = 4000000 # dev-machine: state, and init with user info...
-compl_limit = 657666 #  then.. what is the optimal size?
+# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+tf.get_logger().setLevel('ERROR')
+
+SNETPATH = './resources/snet/snet-0.1.0.pb'
+CNETPATH = './resources/cnet/cnet-0.1.0.pb'
+
+
+def model_name(mpath, version):
+    return {
+        '0.1.0': 'snet' if mpath == SNETPATH else ''
+    }[version]
+
+
+def snet_in(version, sess):
+    return {
+        '0.1.0': sess.graph.get_tensor_by_name('input_1:0')
+    }[version]
+
+
+def snet_out(version, sess):
+    return {
+        '0.1.0': sess.graph.get_tensor_by_name('conv2d_19/truediv:0')
+    }[version]
+
+
+def cnet_in(version, sess):
+    return {
+        '0.1.0': sess.graph.get_tensor_by_name('INPUT:0')
+    }[version]
+
+
+def cnet_out(version, sess):
+    return {
+        '0.1.0': sess.graph.get_tensor_by_name('OUTPUT:0')
+    }[version]
+
+
+seg_limit = 4000000  # dev-machine: state, and init with user info...
+compl_limit = 657666  # then.. what is the optimal size?
+
+
 def set_limits(slimit, climit):
     global seg_limit, compl_limit
-    seg_limit = slimit # dev-machine: state, and init with user info...
-    compl_limit = climit #  then.. what is the optimal size?
+    seg_limit = slimit  # dev-machine: state, and init with user info...
+    compl_limit = climit  # then.. what is the optimal size?
+
 
 def load_model(mpath, version):
-    #graph_def = tf.GraphDef()
+    # graph_def = tf.GraphDef()
     graph_def = tf.compat.v1.GraphDef()
-    #with tf.gfile.GFile(mpath, 'rb') as f:
+    # with tf.gfile.GFile(mpath, 'rb') as f:
     with tf.io.gfile.GFile(mpath, 'rb') as f:
         graph_def.ParseFromString(f.read())
         tf.import_graph_def(
             graph_def,
-            name = consts.model_name(mpath, version)
+            name = model_name(mpath, version)
         )
-load_model(consts.SNETPATH, '0.1.0')
-load_model(consts.CNETPATH, '0.1.0')
+load_model(SNETPATH, '0.1.0')
+load_model(CNETPATH, '0.1.0')
 
-#----------------------------------------------------------------
+# ----------------------------------------------------------------
 def segment_or_oom(segnet, inp, modulo=16):
     ''' If image is too big, return None '''
     h,w = inp.shape[:2]
@@ -56,28 +96,28 @@ def segment(segnet, inp, modulo=16):
     ''' oom-free segmentation '''
     global seg_limit
 
-    h,w = inp.shape[:2] # 1 image, not batch.
+    h,w = inp.shape[:2]  # 1 image, not batch.
     result = None
     if h * w < seg_limit:
         result = segment_or_oom(segnet, inp, modulo)
-        if result is None: # seg_limit: Ok but OOM occur!
+        if result is None:  # seg_limit: Ok but OOM occur!
             seg_limit = h * w
-            #print('segmentation seg_limit =', seg_limit, 'updated!')
-    #else:
-        #print('segmentation seg_limit exceed! img_size =',
-              #h*w, '>', seg_limit, '= seg_limit')
+            # print('segmentation seg_limit =', seg_limit, 'updated!')
+    # else:
+        # print('segmentation seg_limit exceed! img_size =',
+              # h * w, '>', seg_limit, '= seg_limit')
 
-    if result is None: # exceed seg_limit or OOM
+    if result is None:  # exceed seg_limit or OOM
         if h > w:
             upper = segment(segnet, inp[:h // 2, :], modulo)
-            downer= segment(segnet, inp[h // 2:, :], modulo)
+            downer = segment(segnet, inp[h // 2:, :], modulo)
             return np.concatenate((upper, downer), axis=0)
         else:
             left  = segment(segnet, inp[:, :w // 2], modulo)
             right = segment(segnet, inp[:, w // 2:], modulo)
             return np.concatenate((left, right), axis=1)
-    #print('segmented', result.shape)
-    return result # image segmented successfully!
+    # print('segmented', result.shape)
+    return result  # image segmented successfully!
 
 def segmap(image):
     '''
@@ -95,38 +135,38 @@ def segmap(image):
         return iu.decategorize(mask, iu.rgb2wk_map)
 
     with tf.compat.v1.Session() as sess:
-        snet_in  = consts.snet_in('0.1.0', sess)
-        snet_out = consts.snet_out('0.1.0', sess)
+        snet_in_tensor = snet_in('0.1.0', sess)
+        snet_out_tensor = snet_out('0.1.0', sess)
 
         def snet(img):
-            return sess.run(snet_out, feed_dict={snet_in:img})
+            return sess.run(snet_out_tensor, feed_dict={snet_in_tensor:img})
 
         return fp.go(
             image,
-            iu.channel3img, iu.float32, # preprocess
+            iu.channel3img, iu.float32,  # preprocess
             assert_img_range,
             lambda img: segment(snet,img),
-            iu.map_max_row, decategorize, iu.uint8, # postprocess
+            iu.map_max_row, decategorize, iu.uint8,  # postprocess
         )
-#----------------------------------------------------------------
+# ----------------------------------------------------------------
 # Completion Network
 def inpaint_or_oom(complnet, image, segmap):
     ''' If image is too big, return None '''
-    #mask = binarization(segmap, 127) # 255 / 2 # maybe useless.
+    # mask = binarization(segmap, 127) # 255 / 2 # maybe useless.
     mask = segmap
     assert image.shape == mask.shape
 
-    h,w = image.shape[:2] # 1 image, not batch.
+    h,w = image.shape[:2]  # 1 image, not batch.
 
     image = iu.modulo_padded(image,8)
     mask  = iu.modulo_padded(mask,8)
 
-    image = np.expand_dims(image, 0) # [h,w,c] -> [1,h,w,c]
+    image = np.expand_dims(image, 0)  # [h,w,c] -> [1,h,w,c]
     mask  = np.expand_dims(mask, 0)
     input_image = np.concatenate([image, mask], axis=2)
 
     result = complnet(input_image)
-    return result[0][:h, :w, ::-1] #---------- remove padding
+    return result[0][:h, :w, ::-1]  #---------- remove padding
     '''
     try:
         result = complnet(input_image)
@@ -136,9 +176,9 @@ def inpaint_or_oom(complnet, image, segmap):
         return None
     '''
 
-#compl_limit = 1525920 # it didn't crash, but SLOWER! why..?
-#lab-machine #1525920
-#compl_limit = 9999999 #
+# compl_limit = 1525920 # it didn't crash, but SLOWER! why..?
+# lab-machine #1525920
+# compl_limit = 9999999 #
 def inpaint(complnet, img, mask):
     ''' oom-free inpainting '''
     global compl_limit
@@ -147,13 +187,13 @@ def inpaint(complnet, img, mask):
     result = None
     if h * w < compl_limit:
         result = inpaint_or_oom(complnet, img, mask)
-        if result is None: # compl_limit: Ok but OOM occur!
+        if result is None:  # compl_limit: Ok but OOM occur!
             compl_limit = h * w
-    #else:
-        #print('compl_limit exceed! img_size =',
-              #h*w, '>', compl_limit, '= compl_limit')
+    # else:
+        # print('compl_limit exceed! img_size =',
+              # h*w, '>', compl_limit, '= compl_limit')
 
-    if result is None: # exceed compl_limit or OOM
+    if result is None:  # exceed compl_limit or OOM
         if h > w:
             upper = inpaint(complnet, img[:h // 2, :], mask[:h // 2, :])
             downer= inpaint(complnet, img[h // 2:, :], mask[h // 2:, :])
@@ -162,8 +202,8 @@ def inpaint(complnet, img, mask):
             left  = inpaint(complnet, img[:, :w // 2], mask[:, :w // 2])
             right = inpaint(complnet, img[:, w // 2:], mask[:, w // 2:])
             return np.concatenate((left, right), axis=1)
-    #print('inpainted', result.shape)
-    return result # image inpainted successfully!
+    # print('inpainted', result.shape)
+    return result  # image inpainted successfully!
 
 def inpainted(image, segmap):
     '''
@@ -175,11 +215,21 @@ def inpainted(image, segmap):
     assert (255 >= image).all(), image.max()
     assert   (image >= 0).all(), image.min()
     with tf.compat.v1.Session() as sess:
-        cnet_in  = consts.cnet_in('0.1.0',sess)
-        cnet_out = consts.cnet_out('0.1.0',sess)
+        cnet_in_tensor  = cnet_in('0.1.0',sess)
+        cnet_out_tensor = cnet_out('0.1.0',sess)
         return inpaint(
             lambda img:sess.run(
-                cnet_out, feed_dict={cnet_in:img}
+                cnet_out_tensor, feed_dict={cnet_in_tensor:img}
             ),
             image, segmap
         )
+
+
+def segment_image(image):
+    mask = segmap(image)
+
+    output = inpainted(image, mask)
+    text = cv2.bitwise_and(image, mask)
+    text[mask == 0] = 255
+
+    return output, text

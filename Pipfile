@@ -10,10 +10,10 @@ imageio = "*"
 opencv-python = "*"
 tensorflow = "*"
 googletrans = "*"
+pytesseract = "*"
 
 [dev-packages]
 pre-commit = "*"
 
 [requires]
 python_version = "3.8"
-
