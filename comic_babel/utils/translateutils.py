@@ -9,11 +9,10 @@ key = ""
 def translate(methodology="google", source_lang="auto", target_lang="spanish", file_name=None, string=None):
     # Initialize the translator 
     if methodology == 'google':
-        Translator = GoogleTranslator
-        key = None
+        Translator = GoogleTranslator()
     else:
-        Translator = DeeplTranslator
-        key = None
+        Translator = DeeplTranslator()
+
 
     if file_name != None and string == None:
         return Translator(source='auto', target='spanish').translate(string)
