@@ -22,11 +22,11 @@ def translate(methodology="google", source_lang="auto", target_lang="spanish", f
 
 
     if file_name == None and string != None:
-        return Translator.translate(string)
+        return Translator.translate(string) or ""
 
     elif file_name != None and string == None:
         if return_string:
-            return Translator.translate_file(file_name)
+            return Translator.translate_file(file_name) or ""
         
         else:
             if save_file is None:
@@ -51,6 +51,7 @@ def translate(methodology="google", source_lang="auto", target_lang="spanish", f
                     chunk_to_translate = chunk_to_translate.replace("\n", " ")
 
                 chunk_tranlated = translate(source_lang='en', target_lang='spanish', string=chunk_to_translate, return_string=True, methodology=methodology)
+                chunk_tranlated = chunk_tranlated or ""
                 if type(chunk_tranlated) == str:
                     chunk_tranlated += "\n\n"
 
