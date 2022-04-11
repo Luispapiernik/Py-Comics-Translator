@@ -2,8 +2,10 @@ import os
 import re
 
 import cv2
+from PIL import Image
 
 import comic_babel.utils.image_utils as imgutils
+from comic_babel.drawer import get_drawed_text
 from comic_babel.segmenter_model import segment_image
 from comic_babel.text_detector import detect_text
 from comic_babel.text_extractor import get_text
@@ -15,7 +17,7 @@ class ComicTranslator:
 
     TODO: remember recursiveness reading the images to be translated
         file_list = [file for sub_dir in os.walk(self.path) for file in glob.glob(os.path.join(sub_dir[0], '*.root'))]
-    
+
     Parameters
     ------------
     input_folder: str
@@ -24,7 +26,9 @@ class ComicTranslator:
     filename_regex: str
     """
 
-    def __init__(self, *, input_folder: str, output_folder: str, filename_regex: str) -> None:
+    def __init__(
+        self, *, input_folder: str, output_folder: str, filename_regex: str
+    ) -> None:
         # get valid paths for the images files
         valid_paths = [
             filename
@@ -61,7 +65,7 @@ class ComicTranslator:
         imgutils.save(output_filename, img_without_text)
         imgutils.save(output_filename.replace("outputs", "text"), img_with_text)
 
-        # obtain subimages that have the texts in the img_to_translate 
+        # obtain subimages that have the texts in the img_to_translate
         rects = detect_text(img_with_text)
         print("=" * 100)
         i = 0
@@ -98,28 +102,24 @@ class ComicTranslator:
 
     def is_valid_text(self, text: str) -> bool:
         """TODO: Improve the text validation methodology"""
-        return text.strip() != ""
+        text = text.strip()
+        return len(text) > 2
 
     def translate_single_page(self, input_filename, output_filename):
-        image_to_translate = imgutils.load(input_filename, imgutils.IMAGE)
-        without_text, text = segment_image(image_to_translate)
+        img_to_translate = imgutils.load(input_filename, imgutils.IMAGE)
+        # segment image: with and without text (see output and text directories)
+        img_without_text, img_with_text = segment_image(img_to_translate)
+        img_without_text = Image.fromarray(img_without_text).convert("RGB")
 
-        rects = detect_text(text)
+        rects = detect_text(img_with_text)
         for (x, y, width, height), cropped in rects:
             string = get_text(cropped)
             string = self.clean_text(string)
 
+            drawed_text = Image.fromarray(cropped)
             if self.is_valid_text(string):
-                left_top = (x, y)
-                bottom_right = (x + width, y + height)
-                cv2.rectangle(
-                    text,
-                    left_top,
-                    bottom_right,
-                    color=(0, 0, 0),
-                    thickness=1
-                )
+                drawed_text = get_drawed_text((width, height), string)
 
-        imgutils.save(output_filename, without_text)
+            img_without_text.paste(drawed_text, (x, y))
 
-
+        img_without_text.save(output_filename)
