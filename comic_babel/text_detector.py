@@ -1,20 +1,22 @@
+from typing import Tuple
+
 import cv2
+import numpy as np
+
+Rect = Tuple[int, int, int, int]
 
 
 # based on https://www.geeksforgeeks.org/text-detection-and-extraction-using-opencv-and-ocr/
-def detect_text(image):
+def detect_text(image: np.ndarray) -> Tuple[Rect, np.ndarray]:
     """
-    
     Parameters
     ----------
-    image: *.jpg|png 
-
+    image: np.ndarray
 
     Returns
     -------
     coordinate of subimages and their respective subimage
     """
-
     # Convert the image to gray scale
     if len(image.shape) == 3:
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)

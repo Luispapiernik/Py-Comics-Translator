@@ -1,4 +1,5 @@
 import os
+from typing import Tuple
 
 import cv2
 import numpy as np
@@ -119,7 +120,7 @@ def segment(segnet, inp, modulo=16):
     # print('segmented', result.shape)
     return result  # image segmented successfully!
 
-def segmap(image):
+def segmap(image: np.ndarray) -> np.ndarray:
     '''
     return: uint8 mask image, bg=black.
 
@@ -205,7 +206,7 @@ def inpaint(complnet, img, mask):
     # print('inpainted', result.shape)
     return result  # image inpainted successfully!
 
-def inpainted(image, segmap):
+def inpainted(image: np.ndarray, segmap: np.ndarray) -> np.ndarray:
     '''
     return: uint8 text removed image.
 
@@ -225,7 +226,7 @@ def inpainted(image, segmap):
         )
 
 
-def segment_image(image):
+def segment_image(image: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     mask = segmap(image)
 
     output = inpainted(image, mask)

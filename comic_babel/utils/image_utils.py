@@ -55,7 +55,7 @@ def modulo_padded(img, modulo=16):
 
 
 # ---------------------------------------------------------------------------------
-def imread(fpath):
+def imread(fpath: str) -> np.ndarray:
     '''
     `fpath` could be windows path (even includes unicode!)
     (cv2.imread cannot work with unicode and windows path)
@@ -71,7 +71,7 @@ def imread(fpath):
             return cv2.imdecode(nparr, cv2.IMREAD_UNCHANGED)
 
 
-def channel3img(img):
+def channel3img(img: np.ndarray) -> np.ndarray:
     '''
     If img is 3-channel img(h, w, 3) then this is identity funcion.
     If img is grayscale img(h, w) then convert 3-channel img.
@@ -213,11 +213,11 @@ MASK = 'mask'
 
 
 @fp.mmethod(load, NDARR)
-def load(path, type): return imread(path)
+def load(path: str, type: str) -> np.ndarray: return imread(path)
 @fp.mmethod(load, IMAGE)
-def load(path, type): return channel3img(imread(path))
+def load(path, type: str) -> np.ndarray: return channel3img(imread(path))
 @fp.mmethod(load, MASK)
-def load(path, type): return mask2segmap(imread(path))
+def load(path, type: str): return mask2segmap(imread(path))
 
 
 def segmap2mask(segmap):
