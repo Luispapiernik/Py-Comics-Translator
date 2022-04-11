@@ -10,8 +10,22 @@ from comic_babel.text_extractor import get_text
 
 
 class ComicTranslator:
-    def __init__(self, *, input_folder, output_folder, filename_regex):
-        # get valid paths
+    """
+    Class with all translating process of the comic specified.
+
+    TODO: remember recursiveness reading the images to be translated
+        file_list = [file for sub_dir in os.walk(self.path) for file in glob.glob(os.path.join(sub_dir[0], '*.root'))]
+    
+    Parameters
+    ------------
+    input_folder: str
+        dummy info
+    ouput_folder: str
+    filename_regex: str
+    """
+
+    def __init__(self, *, input_folder: str, output_folder: str, filename_regex: str) -> None:
+        # get valid paths for the images files
         valid_paths = [
             filename
             for filename in os.listdir(input_folder)
@@ -21,39 +35,38 @@ class ComicTranslator:
             )
         ]
 
+        # get the complete path to the image input and output
         self.input_paths = [
             os.path.join(input_folder, filename)
             for filename in valid_paths
         ]
-
         self.output_paths = [
             os.path.join(output_folder, filename)
             for filename in valid_paths
         ]
 
     def translate_comic(self):
-        # TODO: fix problems with paralelization
-        # import multiprocessing as mp
-        # pool = mp.Pool(mp.cpu_count())
-        # pool.imap_unordered(
-        #     self.translate_single_page, zip(self.input_paths, self.output_paths)
-        # )
-        # pool.close()
-        # pool.join()
-
         for input_filename, output_filename in zip(self.input_paths, self.output_paths):
             self.translate_single_page(input_filename, output_filename)
 
     def for_test_translate_single_page(self, input_filename, output_filename):
-        image = imgutils.load(input_filename, imgutils.IMAGE)
-        without_text, text = segment_image(image)
+        """
+        This carry out the translat process, but save checkpoints in between.
+        """
+        img_to_translate = imgutils.load(input_filename, imgutils.IMAGE)
+        # segment image: with and without text (see output and text directories)
+        img_without_text, img_with_text = segment_image(img_to_translate)
 
-        imgutils.save(output_filename, without_text)
-        imgutils.save(output_filename.replace("outputs", "text"), text)
+        # save segmented images
+        imgutils.save(output_filename, img_without_text)
+        imgutils.save(output_filename.replace("outputs", "text"), img_with_text)
 
-        rects = detect_text(text)
+        # obtain subimages that have the texts in the img_to_translate 
+        rects = detect_text(img_with_text)
         print("=" * 100)
         i = 0
+        # go over the subimages obtain text, shift a little, and put in
+        #  the image again.
         for (x, y, width, height), cropped in rects:
             string = get_text(cropped)
             if string.strip() != "":
@@ -64,7 +77,7 @@ class ComicTranslator:
             left_top = (x - offset, y - offset)
             bottom_right = (x + width + offset, y + height + offset)
             cv2.rectangle(
-                text,
+                img_with_text,
                 left_top,
                 bottom_right,
                 color=(0, 0, 0),
@@ -77,7 +90,7 @@ class ComicTranslator:
             )
             i += 1
 
-        imgutils.save(output_filename.replace("outputs", "detected"), text)
+        imgutils.save(output_filename.replace("outputs", "detected"), img_with_text)
 
     def clean_text(self, text: str) -> str:
         """TODO: Implement a cleaning methodology"""
@@ -88,8 +101,8 @@ class ComicTranslator:
         return text.strip() != ""
 
     def translate_single_page(self, input_filename, output_filename):
-        image = imgutils.load(input_filename, imgutils.IMAGE)
-        without_text, text = segment_image(image)
+        image_to_translate = imgutils.load(input_filename, imgutils.IMAGE)
+        without_text, text = segment_image(image_to_translate)
 
         rects = detect_text(text)
         for (x, y, width, height), cropped in rects:
@@ -108,3 +121,5 @@ class ComicTranslator:
                 )
 
         imgutils.save(output_filename, without_text)
+
+

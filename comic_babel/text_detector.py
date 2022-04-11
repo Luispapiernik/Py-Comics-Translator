@@ -3,6 +3,18 @@ import cv2
 
 # based on https://www.geeksforgeeks.org/text-detection-and-extraction-using-opencv-and-ocr/
 def detect_text(image):
+    """
+    
+    Parameters
+    ----------
+    image: *.jpg|png 
+
+
+    Returns
+    -------
+    coordinate of subimages and their respective subimage
+    """
+
     # Convert the image to gray scale
     if len(image.shape) == 3:
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
