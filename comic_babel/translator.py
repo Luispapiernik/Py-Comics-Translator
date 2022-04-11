@@ -1,4 +1,8 @@
-def translate_text(
-        text: str, source_language: str = "ENG", target_language: str = "SPA"
+from tokenize import String
+
+
+def translate(
+    string: str, source_lang: str = "english", target_lang: str = "spanish",
+    return_string: str =True
     ) -> str:
-    return text
+    return string
