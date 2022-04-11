@@ -1,7 +1,8 @@
 import pytesseract
 
-TESSERACT_PATH = "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
-pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
+from comic_babel.config import settings
+
+pytesseract.pytesseract.tesseract_cmd = settings.TESSERACT_PATH
 
 
 def get_text(image) -> str:
