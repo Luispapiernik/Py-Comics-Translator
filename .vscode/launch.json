@@ -13,11 +13,11 @@
                 "-f",
                 "karakuri_1.png",
             ],
-            "console": "integratedTerminal",
-            "justMyCode": true, 
             "env": {
                 "TESSERACT_PATH": "C:\\Porgram Files\\Tesseract-OCR\\tesseract.exe"            
-            }
+            },
+            "console": "integratedTerminal",
+            "justMyCode": true
         }
     ]
 }
