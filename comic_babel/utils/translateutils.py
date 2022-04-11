@@ -3,7 +3,8 @@ from deep_translator import DeeplTranslator, GoogleTranslator
 
 key = ""
 
-def translate(methodology="google", source_lang="auto", target_lang="spanish", file_name=None, string=None, api_key=None, return_string=False, save_file=None):
+def translate(methodology="google", source_lang="auto", target_lang="spanish", file_name=None, string=None, api_key=None, return_string=False, save_file=None, 
+    separator=None):
     """
     save_file: file to save the translation done, it always used as a default when a input file is given. If return_string==true, it will
         try to return a  string, always that the input has less than 5000 characters.
@@ -34,18 +35,24 @@ def translate(methodology="google", source_lang="auto", target_lang="spanish", f
 
         read_file = open(file_name, 'r')
         Lines = read_file.readlines()
-        save_file = open(save_file, 'w+')
+        save_file = open(save_file, 'w')
 
         n_characters = 0
         for line in Lines:
 
-            if n_characters < 4500:
+            if n_characters < 4500 and separator and not (line == separator):
                 chunk_to_translate += line
                 n_characters += len(line)
 
             else:
                 # save left over readed and put next in blank for next leftover
+                if (line == "\n"):
+                    chunk_to_translate = chunk_to_translate.replace("\n", " ")
+
                 chunk_tranlated = translate(source_lang='en', target_lang='spanish', string=chunk_to_translate, return_string=True, methodology=methodology)
+                if type(chunk_tranlated) == str:
+                    chunk_tranlated += "\n\n"
+
                 save_file.write(chunk_tranlated)
                 chunk_to_translate = line
                 n_characters = len(line)
@@ -92,10 +99,10 @@ def examples():
 
     dir_data_test = os.path.dirname(os.path.realpath(__file__)) + "/../../tests/test_data/"
     file_name = "Book 1 - The Philosopher's Stone.txt"
-    file_to_translate = dir_data_test + "TheBoyWhoLived.txt"
+    file_to_translate = dir_data_test + "TheBoyWhoLivedShort.txt"
 
     for methodology in methods[:1]:
-        translated = translate(source_lang='en', target_lang='spanish', file_name=file_to_translate, methodology=methodology)
+        translated = translate(source_lang='en', target_lang='spanish', file_name=file_to_translate, methodology=methodology, separator="\n")
 
 
 if __name__ == '__main__':
