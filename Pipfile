@@ -11,13 +11,10 @@ funcy = "*"
 imageio = "*"
 googletrans = "*"
 pytesseract = "*"
-<<<<<<< HEAD
 deep-translator = "*"
 setuptools = "*"
 requests = "*"
-=======
 pydantic = "*"
->>>>>>> main
 
 [dev-packages]
 pre-commit = "*"
