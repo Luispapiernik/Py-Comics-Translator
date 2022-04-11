@@ -14,8 +14,8 @@
                 "karakuri_1.png",
             ],
             "windows": {"env": {
-                "TESSERACT_PATH": "C:\\Porgram Files\\Tesseract-OCR\\tesseract.exe"            
-            }},        
+                "TESSERACT_PATH": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
+            }},
             "console": "integratedTerminal",
             "justMyCode": true
         }
