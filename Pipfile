@@ -6,7 +6,6 @@ name = "pypi"
 [packages]
 funcy = "*"
 numpy = "*"
-imageio = "*"
 opencv-python = "*"
 tensorflow = "*"
 googletrans = "*"

@@ -1,8 +1,8 @@
 import os
 
 import cv2
-import imageio
 import numpy as np
+from PIL import Image
 
 import comic_babel.utils.functional_programming as fp
 
@@ -247,7 +247,7 @@ def mask2segmap(mask):
     )
 
 
-def save(path, img): #TODO: multimethod..?
+def save(path, img) -> None: # TODO: multimethod..?
     if len(img.shape) == 3:
         n_channels = img.shape[-1]
         if n_channels == 4:  # bgra -> rgba
@@ -257,7 +257,7 @@ def save(path, img): #TODO: multimethod..?
     elif len(img.shape) == 2:  # bw = bw
         rgb_img = img
 
-    imageio.imwrite(path, rgb_img)
+    Image.fromarray(rgb_img).save(path)
 
 
 if __name__ == '__main__':
