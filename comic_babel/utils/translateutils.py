@@ -48,6 +48,7 @@ def translate(methodology="google", source_lang="auto", target_lang="spanish", f
                 chunk_tranlated = translate(source_lang='en', target_lang='spanish', string=chunk_to_translate, return_string=True, methodology=methodology)
                 save_file.write(chunk_tranlated)
                 chunk_to_translate = line
+                n_characters = len(line)
 
 
         read_file.close()
