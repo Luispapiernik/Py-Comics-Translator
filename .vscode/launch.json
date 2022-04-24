@@ -11,7 +11,7 @@
             "program": "main.py",
             "args": [
                 "-f",
-                "karakuri_1.jpg",
+                "karakuri_1.png",
             ],
             "env": {
                 "TESSERACT_PATH": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
