@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import List, Tuple
 
 import cv2
 import numpy as np
@@ -7,7 +7,7 @@ Rect = Tuple[int, int, int, int]
 
 
 # based on https://www.geeksforgeeks.org/text-detection-and-extraction-using-opencv-and-ocr/
-def detect_text(image: np.ndarray) -> Tuple[Rect, np.ndarray]:
+def detect_text(image: np.ndarray) -> List[Tuple[Rect, np.ndarray]]:
     """
     Parameters
     ----------

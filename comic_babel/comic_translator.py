@@ -1,7 +1,7 @@
 import os
 import re
 
-import cv2
+import aggdraw
 from PIL import Image, ImageChops
 
 import comic_babel.utils.image_utils as imgutils
@@ -21,14 +21,15 @@ class ComicTranslator:
     Parameters
     ------------
     input_folder: str
-        dummy info
     ouput_folder: str
     filename_regex: str
     """
 
     def __init__(
-        self, *, input_folder: str, output_folder: str, filename_regex: str
+        self, *, input_folder: str, output_folder: str, filename_regex: str,
+        font_path: str,
     ) -> None:
+        self.font = aggdraw.Font((0, 0, 0), font_path, 12)
         # get valid paths for the images files
         valid_paths = [
             filename
@@ -51,7 +52,7 @@ class ComicTranslator:
 
     def translate_comic(self) -> None:
         for input_filename, output_filename in zip(self.input_paths, self.output_paths):
-            self.translate_single_page(input_filename, output_filename)
+            self.for_test_translate_single_page(input_filename, output_filename)
 
     def for_test_translate_single_page(
         self, input_filename: str, output_filename: str
@@ -64,39 +65,35 @@ class ComicTranslator:
         img_without_text, img_with_text = segment_image(img_to_translate)
 
         # save segmented images
-        imgutils.save(output_filename, img_without_text)
+        imgutils.save(output_filename.replace("outputs", "segmented"), img_without_text)
         imgutils.save(output_filename.replace("outputs", "text"), img_with_text)
 
-        # obtain subimages that have the texts in the img_to_translate
-        rects = detect_text(img_with_text)
-        print("=" * 100)
+        img_without_text = Image.fromarray(img_without_text).convert("RGB")
+
         i = 0
-        # go over the subimages obtain text, shift a little, and put in
-        #  the image again.
+        rects = detect_text(img_with_text)
         for (x, y, width, height), cropped in rects:
             string = get_text(cropped)
-            if string.strip() != "":
-                print(string)
-                print("-" * 100)
-
-            offset = 0
-            left_top = (x - offset, y - offset)
-            bottom_right = (x + width + offset, y + height + offset)
-            cv2.rectangle(
-                img_with_text,
-                left_top,
-                bottom_right,
-                color=(0, 0, 0),
-                thickness=1
+            string = self.clean_text(string)
+            string = translate(
+                string, source_lang="english", target_lang="spanish"
             )
 
-            imgutils.save(
-                output_filename.replace("outputs", "cropped").replace(".png", f"_{i}.png"),
-                cropped
-            )
+            drawed_text = Image.fromarray(cropped).convert("RGB")
+            drawed_text.save(output_filename.replace("outputs", "detected").replace(".png", f"_{i}.png"))
+
+            target_image = img_without_text.crop((x, y, x + width, y + height))
+            if self.is_valid_text(string):
+                drawed_text = get_drawed_text((width, height), string, self.font)
+
+            drawed_text.save(output_filename.replace("outputs", "results").replace(".png", f"_{i}.png"))
+
+            target_image = ImageChops.multiply(drawed_text, target_image)
+            img_without_text.paste(target_image, (x, y))
+
             i += 1
 
-        imgutils.save(output_filename.replace("outputs", "detected"), img_with_text)
+        img_without_text.save(output_filename)
 
     def clean_text(self, text: str) -> str:
         """TODO: Implement a cleaning methodology"""
@@ -123,14 +120,13 @@ class ComicTranslator:
             string = get_text(cropped)
             string = self.clean_text(string)
             string = translate(
-                string=string, source_lang="english", target_lang="spanish",
-                return_string=True
+                string, source_lang="english", target_lang="spanish"
             )
 
             drawed_text = Image.fromarray(cropped).convert("RGB")
             target_image = img_without_text.crop((x, y, x + width, y + height))
             if self.is_valid_text(string):
-                drawed_text = get_drawed_text((width, height), string)
+                drawed_text = get_drawed_text((width, height), string, self.font)
 
             target_image = ImageChops.multiply(drawed_text, target_image)
             img_without_text.paste(target_image, (x, y))

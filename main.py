@@ -8,7 +8,8 @@ def execute(args: argparse.Namespace) -> None:
     comic_translator = ComicTranslator(
         input_folder=args.input_folder,
         output_folder=args.output_folder,
-        filename_regex=args.filename_regex
+        filename_regex=args.filename_regex,
+        font_path=args.font_path,
     )
     comic_translator.translate_comic()
 
@@ -22,6 +23,10 @@ def main() -> None:
     parser.add_argument("-f", "--filename-regex", default=r"\w+_\d+\.(?:jpg|png)")
     parser.add_argument("-i", "--input-folder", default="./images/inputs")
     parser.add_argument("-o", "--output-folder", default="./images/outputs")
+
+    parser.add_argument(
+        "-fp", "--font-path", default="./resources/fonts/Comic_Neue/ComicNeue-Bold.ttf"
+    )
 
     args = parser.parse_args()
 

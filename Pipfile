@@ -11,6 +11,7 @@ tensorflow = "*"
 googletrans = "*"
 pytesseract = "*"
 pydantic = "*"
+aggdraw = "*"
 
 [dev-packages]
 pre-commit = "*"
